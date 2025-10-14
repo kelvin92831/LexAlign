@@ -9,10 +9,10 @@
 ### 主要功能
 
 - ✅ 上傳法規修正對照表（docx 格式）
-- ✅ 批次上傳公司內規文件（最多 50 份）
+- ✅ 自動載入公司內規文件（從 `data/internal_rules` 資料夾）
 - ✅ RAG 向量檢索比對相關內規段落
-- ✅ AI 生成具體修改建議與理由
-- ✅ 匯出 Word 格式報告供審核
+- ✅ AI 生成具體修改建議與理由（傳送完整文件給 LLM）
+- ✅ 匯出 Word 格式報告供審核（按文件分組）
 
 ### 技術架構
 
@@ -22,7 +22,7 @@
 | **後端** | Node.js + Express.js |
 | **AI 模型** | Google Gemini 2.5 Pro |
 | **向量資料庫** | ChromaDB |
-| **文件解析** | Mammoth (docx parser) |
+| **文件解析** | Mammoth (docx → HTML) + Cheerio (HTML 解析) |
 | **文件生成** | docx (Word generator) |
 
 ---
@@ -77,7 +77,7 @@ UPLOAD_PATH=./tmp/uploads
 
 # AI 生成設定
 TEMPERATURE=0.3
-MAX_OUTPUT_TOKENS=2048
+MAX_OUTPUT_TOKENS=8192
 ```
 
 #### 4. 啟動後端
@@ -141,21 +141,34 @@ cp 您的內規文件.docx data/internal_rules/
 
 系統將自動執行以下流程：
 
-1. **文件解析**：解析對照表，提取修正條文、現行條文、說明欄
-2. **自動載入內規**：從 `data/internal_rules/` 資料夾載入所有內規文件
+1. **文件解析**：使用 HTML 表格解析提取修正條文、現行條文、說明欄
+2. **自動載入內規**：從 `data/internal_rules/` 資料夾載入所有內規文件並建立向量索引
 3. **向量檢索**：使用 RAG 技術搜尋相關內規段落（Top-5）
-4. **AI 生成**：透過 Gemini 2.5 Pro 生成修改建議與理由
+4. **完整文件檢索**：取得最相關內規的完整文件內容
+5. **AI 生成**：透過 Gemini 2.5 Pro（傳送完整文件）生成修改建議與理由
 
 ### 步驟 4：查看結果
 
-1. 檢視 AI 生成的修改建議（包含 5 欄資訊）：
-   - 關聯內規文件
-   - 對應法規修正
-   - 差異辨識（新增/修正/刪除）
-   - 建議修正文
-   - 理由與依據
+系統提供兩種檢視方式：
 
-2. 下載 Word 報告供後續審核
+**📁 按文件分組檢視（預設）**
+- 以內規文件為單位分組顯示
+- 每個文件顯示需要的所有修改
+- 適合實際修訂內規時使用
+
+**📋 按法規條文檢視**
+- 以法規修正條文為單位顯示
+- 適合追蹤法規遵循狀況
+
+每條建議包含：
+- 法規修正摘要
+- 變更類型（新增/修正/刪除）
+- 受影響章節
+- 建議修正文
+- 理由與依據
+- 追溯資訊
+
+**下載報告**：點擊「下載 Word」匯出按文件分組的完整報告
 
 ---
 
@@ -214,9 +227,16 @@ cp 新的內規.docx data/internal_rules/
 │   │   └── api.js              # API 客戶端
 │   └── package.json
 │
-├── data/                       # 測試資料
-│   ├── internal_rules/         # 內規文件
-│   └── official_documents/     # 法規文件
+├── data/                       # 資料檔案
+│   ├── internal_rules/         # 內規文件（系統自動讀取）
+│   └── official_documents/     # 法規文件（測試用）
+│
+├── docs/                       # 專案文檔
+│   ├── API.md                  # API 文檔
+│   ├── ARCHITECTURE.md         # 架構文檔
+│   ├── USER_GUIDE.md           # 使用手冊
+│   ├── DEPLOYMENT.md           # 部署指南
+│   └── RAG_OPTIMIZATION.md     # RAG 優化建議
 │
 ├── PRD/                        # 產品需求文件
 │   └── 法規對應比對系統 PRD v1.0.md
@@ -233,14 +253,17 @@ cp 新的內規.docx data/internal_rules/
 | 端點 | 方法 | 說明 |
 |------|------|------|
 | `/api/upload/regulation` | POST | 上傳法規修正對照表 |
-| `/api/upload/policy` | POST | 上傳內規文件 |
-| `/api/upload/policy/batch` | POST | 批次上傳內規文件 |
+| `/api/upload/policy/auto-load` | POST | 自動載入內規文件（從 data/internal_rules） |
+| `/api/upload/policy/check` | GET | 檢查內規資料夾狀態 |
 | `/api/match` | POST | 執行 RAG 比對 |
 | `/api/match/:taskId` | GET | 取得比對結果 |
+| `/api/match/test-search` | POST | 測試 RAG 檢索（開發用） |
 | `/api/suggest` | POST | 生成 AI 建議 |
 | `/api/suggest/:taskId` | GET | 取得建議結果 |
-| `/api/download/:taskId` | GET | 下載報告（docx/json） |
+| `/api/download/:taskId` | GET | 下載報告（docx/json，按文件分組） |
 | `/health` | GET | 健康檢查 |
+
+**詳細 API 文檔**：參考 [docs/API.md](docs/API.md)
 
 ---
 
@@ -273,24 +296,36 @@ npm run lint
 
 ## 📊 修改建議報告格式
 
-每條建議包含以下五欄：
+**報告採用「按文件分組」格式**，方便逐份內規進行修訂。
+
+### 報告結構
+
+1. **標題頁**：法規對應比對建議報告
+2. **文件分組章節**：
+   - 每個內規文件獨立一節
+   - 文件類型標記（主規章 / 附件範本）
+   - 該文件的所有修改建議清單
+
+### 每條建議包含
 
 | 欄位 | 說明 |
 |------|------|
-| **關聯內規文件** | 文件名稱、版次、章節（條號/段落錨點） |
-| **對應法規修正** | 條號或主題、修正重點摘要 |
-| **差異辨識** | 類型（新增 / 修正 / 刪除）＋ 影響範圍 |
+| **法規修正摘要** | 對應的法規條號與修正重點 |
+| **變更類型** | 新增 / 修正 / 刪除 |
+| **受影響章節** | 內規的哪個章節需要修改 |
 | **建議修正文** | AI 生成的具體修正文句或段落 |
 | **理由與依據** | 說明對照公文修訂內容與內規落差、引用來源 |
+| **追溯資訊** | 法規條號 ↔ 內規條號對應 |
 
 ---
 
 ## 🔐 資料安全
 
-- ✅ 所有文件皆人工上傳，不含自動爬取內容
-- ✅ 僅上傳必要文字片段送入 Gemini 模型
+- ✅ 所有文件皆人工放置，不含自動爬取內容
+- ✅ 傳送完整內規文件給 Gemini 模型以提升準確度（僅處理過程使用）
 - ✅ 系統不自動覆寫內規文件，只生成建議報告供人工審核
 - ✅ 支援本地部署，資料不外流
+- ✅ 內規文件存放於本地 `data/internal_rules` 資料夾，完全可控
 
 ---
 
@@ -329,9 +364,22 @@ npm run lint
 
 ## 📝 版本資訊
 
-- **版本**：1.0.0
-- **發布日期**：2025-10-11
+- **版本**：1.1.0
+- **發布日期**：2025-10-14
 - **PRD 版本**：v1.0（參考 `PRD/法規對應比對系統 PRD v1.0.md`）
+
+### 更新記錄
+
+**v1.1.0** (2025-10-14)
+- ✅ 改為自動載入內規文件（從 `data/internal_rules` 資料夾）
+- ✅ 法規解析改用 HTML 表格解析（Mammoth + Cheerio）
+- ✅ LLM 上下文改為完整文件（提升準確度）
+- ✅ 建議輸出改為按文件分組
+- ✅ Word 報告改為按文件分組格式
+- ✅ 提升 Max Tokens 至 8192
+
+**v1.0.0** (2025-10-11)
+- 初始版本發布
 
 ---
 
@@ -356,10 +404,21 @@ npm run lint
 
 ---
 
+## 📚 延伸閱讀
+
+- [API 文檔](docs/API.md) - 完整的 API 端點說明
+- [架構文檔](docs/ARCHITECTURE.md) - 系統架構與技術細節
+- [使用手冊](docs/USER_GUIDE.md) - 詳細的使用指南
+- [部署指南](docs/DEPLOYMENT.md) - 生產環境部署說明
+- [RAG 優化建議](docs/RAG_OPTIMIZATION.md) - RAG 系統改進方案
+
+---
+
 ## 🙏 致謝
 
 - Google Gemini AI
 - ChromaDB
+- Mammoth.js & Cheerio.js
 - Next.js & React 社群
 - Express.js & Node.js 社群
 
