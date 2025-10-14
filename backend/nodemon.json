@@ -1,0 +1,17 @@
+{
+  "watch": ["src"],
+  "ext": "js,json",
+  "ignore": [
+    "node_modules/**",
+    "tmp/**",
+    "uploads/**",
+    "chroma_db/**",
+    "*.log",
+    "*.md"
+  ],
+  "exec": "node src/app.js",
+  "env": {
+    "NODE_ENV": "development"
+  }
+}
+
