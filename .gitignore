@@ -53,3 +53,5 @@ uploads/
 *.log
 logs/
 
+.cursor/
+
