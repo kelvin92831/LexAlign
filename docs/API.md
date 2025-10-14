@@ -85,46 +85,15 @@ Content-Type: multipart/form-data
 
 ---
 
-### 3. 上傳內規文件
+### 3. 自動載入內規文件
 
 ```http
-POST /api/upload/policy
-Content-Type: multipart/form-data
+POST /api/upload/policy/auto-load
 ```
 
-**參數**
+**說明**
 
-| 欄位 | 類型 | 必填 | 說明 |
-|------|------|------|------|
-| file | File | ✅ | .docx 格式的內規文件 |
-
-**回應**
-
-```json
-{
-  "success": true,
-  "data": {
-    "filename": "內規文件.docx",
-    "chunkCount": 45,
-    "totalDocuments": 450
-  }
-}
-```
-
----
-
-### 4. 批次上傳內規文件
-
-```http
-POST /api/upload/policy/batch
-Content-Type: multipart/form-data
-```
-
-**參數**
-
-| 欄位 | 類型 | 必填 | 說明 |
-|------|------|------|------|
-| files | File[] | ✅ | 多個 .docx 格式的內規文件（最多 50 個） |
+自動從 `data/internal_rules` 資料夾載入所有內規文件（.docx）並建立向量索引。
 
 **回應**
 
@@ -137,12 +106,41 @@ Content-Type: multipart/form-data
     "failed": 0,
     "results": [
       {
-        "filename": "內規1.docx",
+        "filename": "SO-02-002_資訊服務供應商委外風險管理作業程序_v3.7.docx",
         "success": true,
         "chunkCount": 45
       }
     ],
     "totalDocuments": 500
+  }
+}
+```
+
+---
+
+### 4. 檢查內規資料夾
+
+```http
+GET /api/upload/policy/check
+```
+
+**說明**
+
+檢查 `data/internal_rules` 資料夾的狀態和文件清單。
+
+**回應**
+
+```json
+{
+  "success": true,
+  "data": {
+    "exists": true,
+    "path": "/path/to/data/internal_rules",
+    "fileCount": 10,
+    "files": [
+      "SO-02-002_資訊服務供應商委外風險管理作業程序_v3.7.docx",
+      "SO-02-002-F06_系統委外開發合約書範本_v2.6.docx"
+    ]
   }
 }
 ```
@@ -264,7 +262,7 @@ Content-Type: application/json
     "suggestionCount": 15,
     "suggestions": [
       {
-        "file": "SO-02-002",
+        "file": "SO-02-002_資訊服務供應商委外風險管理作業程序_v3.7.docx",
         "section": "第六章 第一節",
         "diff_summary": "新增雲端運算服務相關規範",
         "change_type": "修正",
@@ -274,6 +272,25 @@ Content-Type: application/json
           "regulation_anchor": "第二條",
           "policy_anchor": "第三條"
         }
+      }
+    ],
+    "suggestions_by_document": [
+      {
+        "doc_name": "SO-02-002_資訊服務供應商委外風險管理作業程序_v3.7.docx",
+        "doc_type": "主規章",
+        "changes": [
+          {
+            "diff_summary": "新增雲端運算服務相關規範",
+            "change_type": "修正",
+            "section": "第六章 第一節",
+            "suggestion_text": "建議修正文字...",
+            "reason": "修改理由與依據...",
+            "trace": {
+              "regulation_anchor": "第二條",
+              "policy_anchor": "第三條"
+            }
+          }
+        ]
       }
     ]
   }
@@ -344,10 +361,9 @@ const regulationRes = await fetch('/api/upload/regulation', {
 });
 const { taskId } = regulationRes.data;
 
-// 2. 批次上傳內規文件
-await fetch('/api/upload/policy/batch', {
+// 2. 自動載入內規文件（從 data/internal_rules 資料夾）
+await fetch('/api/upload/policy/auto-load', {
   method: 'POST',
-  body: formData, // 包含多個內規 docx
 });
 
 // 3. 執行比對
@@ -363,9 +379,9 @@ const suggestRes = await fetch('/api/suggest', {
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ taskId }),
 });
-const { suggestions } = suggestRes.data;
+const { suggestions, suggestions_by_document } = suggestRes.data;
 
-// 5. 下載報告
+// 5. 下載報告（按文件分組）
 window.location.href = `/api/download/${taskId}?format=docx`;
 ```
 
@@ -375,9 +391,10 @@ window.location.href = `/api/download/${taskId}?format=docx`;
 
 1. **檔案大小限制**：預設 10MB，可在環境變數調整
 2. **檔案格式**：僅支援 `.docx` 格式
-3. **批次上傳**：最多 50 個檔案
+3. **內規文件位置**：所有內規文件必須放在 `data/internal_rules` 資料夾
 4. **taskId 有效期**：建議在上傳後 24 小時內完成流程
 5. **併發限制**：建議單一 taskId 依序執行流程，避免併發
+6. **建議格式**：API 同時返回 `suggestions`（按法規）和 `suggestions_by_document`（按文件）兩種格式
 
 ---
 
