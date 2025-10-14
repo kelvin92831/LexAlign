@@ -69,9 +69,9 @@ lib/
 ### 技術棧
 
 - **框架**: Express.js
-- **文件解析**: Mammoth (docx → text)
+- **文件解析**: Mammoth (docx → HTML/text) + Cheerio (HTML 解析)
 - **向量資料庫**: ChromaDB
-- **AI 模型**: Google Generative AI SDK
+- **AI 模型**: Google Generative AI SDK (Gemini 2.5 Pro)
 - **文件生成**: docx (Word generator)
 
 ### 模組結構
@@ -132,10 +132,11 @@ HTTP Response
 
 - **輸入**: 法規修正對照表（.docx）
 - **處理**:
-  1. 使用 Mammoth 讀取文件
-  2. 識別章節標題（第X條）
-  3. 提取修正條文、現行條文、說明
-  4. 判斷差異類型（新增/修正/刪除）
+  1. 使用 Mammoth 轉換為 HTML
+  2. 使用 Cheerio 解析 HTML 表格結構
+  3. 識別章節標題（第X條）
+  4. 提取修正條文、現行條文、說明
+  5. 判斷差異類型（新增/修正/刪除）
 - **輸出**: `RegulationDiffDoc` 物件
 
 #### Policy Parser（內規解析器）
@@ -172,17 +173,21 @@ HTTP Response
 #### Gemini Service
 
 - **模型**: Gemini 2.5 Pro
-- **輸入**: 法規修正項目 + 相關內規片段
+- **輸入**: 法規修正項目 + **完整內規文件**（而非片段）
 - **Prompt 設計**:
   ```
   系統角色: 法規遵循顧問
   任務: 分析法規修正對應的內規修改需求
-  輸入: 法規修正 + 內規內容
+  輸入: 法規修正 + 完整內規文件（包含最相關章節標記）
   輸出: JSON 格式建議（5 欄資訊）
   ```
 - **參數**:
   - Temperature: 0.3（偏保守）
-  - Max Tokens: 2048
+  - Max Tokens: 8192（支援長文件）
+- **上下文增強**:
+  - 優先傳送 Top-1 最相關的完整文件
+  - 標記最相關章節供 LLM 參考
+  - 保留文件結構和上下文
 
 ---
 
@@ -235,6 +240,25 @@ HTTP Response
 }
 ```
 
+### SuggestionByDocument（按文件分組）
+
+```javascript
+{
+  doc_name: string,          // 內規文件名稱
+  doc_type: string,          // 主規章 / 附件範本
+  changes: [                 // 該文件的所有修改建議
+    {
+      diff_summary: string,
+      change_type: string,
+      section: string,
+      suggestion_text: string,
+      reason: string,
+      trace: { ... }
+    }
+  ]
+}
+```
+
 ---
 
 ## API 設計
@@ -244,10 +268,12 @@ HTTP Response
 | 端點 | 方法 | 用途 |
 |------|------|------|
 | `/api/upload/regulation` | POST | 上傳法規文件 |
-| `/api/upload/policy/batch` | POST | 批次上傳內規 |
+| `/api/upload/policy/auto-load` | POST | 自動載入內規（從 data/internal_rules） |
+| `/api/upload/policy/check` | GET | 檢查內規資料夾狀態 |
 | `/api/match` | POST | 執行 RAG 比對 |
+| `/api/match/test-search` | POST | 測試 RAG 檢索（開發用） |
 | `/api/suggest` | POST | 生成 AI 建議 |
-| `/api/download/:taskId` | GET | 下載報告 |
+| `/api/download/:taskId` | GET | 下載報告（按文件分組） |
 
 ### 任務 ID 機制
 
@@ -292,8 +318,9 @@ HTTP Response
 
 ### 3. AI 生成
 
-- 僅傳送必要片段（Top-5）
-- 設定 Token 上限避免超時
+- 傳送完整內規文件（而非片段）以提供完整上下文
+- 設定較高 Token 上限（8192）支援長文件處理
+- 標記最相關章節供 LLM 重點參考
 
 ---
 
@@ -339,17 +366,20 @@ HTTP Response
 
 ### 已知限制
 
-1. 無法處理複雜表格結構
+1. ~~無法處理複雜表格結構~~（已解決：使用 HTML 解析）
 2. 不支援圖片與圖表
 3. 向量資料庫未做持久化備份
 4. 無多租戶隔離機制
+5. 內規文件需手動放置於 `data/internal_rules` 資料夾
 
 ### 改進方向
 
-1. 實作表格解析增強
-2. 整合 OCR 技術
+1. ~~實作表格解析增強~~（已完成）
+2. 整合 OCR 技術處理圖表
 3. 實作資料庫定期備份
 4. 新增使用者權限系統
+5. 實作 Web 介面的內規文件管理功能
+6. 優化 RAG 檢索策略（查詢增強、重排序）
 
 ---
 
@@ -357,4 +387,3 @@ HTTP Response
 
 - **架構版本**: v1.0
 - **更新日期**: 2025-10-11
-
