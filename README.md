@@ -273,13 +273,17 @@ cp 新的內規.docx data/internal_rules/
 │   ├── API.md                  # API 文檔
 │   ├── ARCHITECTURE.md         # 架構文檔
 │   ├── USER_GUIDE.md           # 使用手冊
-│   ├── DEPLOYMENT.md           # 部署指南
-│   └── RAG_OPTIMIZATION.md     # RAG 優化建議
+│   └── DEPLOYMENT.md           # 部署指南
+│   
 │
 ├── PRD/                        # 產品需求文件
 │   └── 法規對應比對系統 PRD v1.0.md
 │
-└── README.md                   # 專案說明
+├── README.md                   # 專案說明
+│
+├── start-all.sh                # 快速啟動腳本
+└── stop-all.sh                 # 快速結束腳本
+
 ```
 
 ---
