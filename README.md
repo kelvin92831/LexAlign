@@ -31,7 +31,7 @@
 
 ### 前置需求
 
-- Node.js 18+ 
+- Node.js 22.20+ 
 - npm 或 yarn
 - Google AI API Key（用於 Gemini 模型）
 
@@ -41,7 +41,7 @@
 
 ```bash
 git clone <repository-url>
-cd Ｔ_final
+cd LexAlign
 ```
 
 #### 2. 安裝後端依賴
@@ -54,6 +54,7 @@ npm install
 #### 3. 設定環境變數
 
 建立 `backend/.env` 檔案（參考 `backend/src/config/keys.example.ts`）：
+(直接複製下面，API key 記得要改)
 
 ```env
 # 伺服器設定
@@ -114,6 +115,15 @@ npm run dev
 ```
 
 前端將在 `http://localhost:3000` 運行
+
+#### 註：快速啟動方式（僅適用 macOS）
+
+回到根目錄執行：
+
+```bash
+./start-all.sh
+```
+
 
 ---
 
@@ -329,21 +339,6 @@ npm run lint
 
 ---
 
-## ⚙️ 系統需求
-
-### 效能指標
-
-- 每份對照表（含 50 份內規庫）平均處理時間 ≤ 90 秒
-- 章節定位準確率 ≥ 90%
-- 修改建議採納率目標 ≥ 70%
-
-### 資源需求
-
-- 記憶體：建議 4GB 以上
-- 磁碟空間：建議 2GB 以上（用於向量資料庫與暫存檔案）
-
----
-
 ## 🛠️ 開發指南
 
 ### 程式碼規範
@@ -383,41 +378,10 @@ npm run lint
 
 ---
 
-## 🤝 貢獻
-
-此專案目前為內部使用系統。如需擴充功能或回報問題，請聯繫資安部門。
-
----
-
-## 📄 授權
-
-內部專案，保留所有權利。
-
----
-
-## 📞 聯絡資訊
-
-如有問題或建議，請聯繫：
-
-- **專案負責人**：資安部門
-- **技術支援**：[待補充]
-
----
-
 ## 📚 延伸閱讀
 
 - [API 文檔](docs/API.md) - 完整的 API 端點說明
 - [架構文檔](docs/ARCHITECTURE.md) - 系統架構與技術細節
 - [使用手冊](docs/USER_GUIDE.md) - 詳細的使用指南
 - [部署指南](docs/DEPLOYMENT.md) - 生產環境部署說明
-- [RAG 優化建議](docs/RAG_OPTIMIZATION.md) - RAG 系統改進方案
 
----
-
-## 🙏 致謝
-
-- Google Gemini AI
-- ChromaDB
-- Mammoth.js & Cheerio.js
-- Next.js & React 社群
-- Express.js & Node.js 社群
