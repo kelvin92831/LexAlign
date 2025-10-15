@@ -29,20 +29,23 @@
 
 ## 🚀 快速開始
 
-### 前置需求
+### 前置需求（非常重要）
 
 - Node.js 22.20+ 
 - npm 或 yarn
+- docker
 - Google AI API Key（用於 Gemini 模型）
 
 ### 安裝步驟
 
-#### 1. 複製專案
+#### 1. 複製專案 
 
 ```bash
 git clone <repository-url>
 cd LexAlign
 ```
+
+或整包下載（.zip）
 
 #### 2. 安裝後端依賴
 
@@ -81,16 +84,7 @@ TEMPERATURE=0.3
 MAX_OUTPUT_TOKENS=8192
 ```
 
-#### 4. 啟動後端
-
-```bash
-cd backend
-npm run dev
-```
-
-後端將在 `http://localhost:3001` 運行
-
-#### 5. 安裝前端依賴
+#### 4. 安裝前端依賴
 
 開啟新的終端機視窗：
 
@@ -99,7 +93,7 @@ cd frontend
 npm install
 ```
 
-#### 6. 設定前端環境變數
+#### 5. 設定前端環境變數
 
 建立 `frontend/.env.local` 檔案：
 
@@ -107,23 +101,57 @@ npm install
 NEXT_PUBLIC_API_URL=http://localhost:3001
 ```
 
-#### 7. 啟動前端
+### 啟動步驟
 
-```bash
-cd frontend
-npm run dev
-```
+- 快速啟動（僅適用 macOS） 
 
-前端將在 `http://localhost:3000` 運行
+  回到根目錄執行腳本：
 
-#### 註：快速啟動方式（僅適用 macOS）
+  ```bash
+    ./start-all.sh
+  ```
 
-回到根目錄執行：
+- Windows 看這！
 
-```bash
-./start-all.sh
-```
+  #### 步驟 1：開啟 docker
 
+  #### 步驟 2：啟動 chromaDB
+
+  在 powershell 執行：
+
+  ```bash
+  docker run -d \
+              --name chroma-regulation \
+              -p 8000:8000 \
+              -v chroma-data:/chroma/chroma \
+              chromadb/chroma:latest
+  ```
+
+  #### 步驟 3：啟動前端
+
+  開另一個 powershell 執行： 
+
+  ```bash
+  cd frontend
+  npm run dev
+  ```
+
+  前端將在 `http://localhost:3000` 運行
+
+
+  #### 步驟 4：啟動後端
+
+  再開另一個 powershell 執行：
+
+  ```bash
+  cd backend
+  npm run dev
+  ```
+
+  後端將在 `http://localhost:3001` 運行
+
+
+  ##### 註：三個 powershell 皆要保持運行！！
 
 ---
 
