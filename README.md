@@ -35,6 +35,7 @@
 - npm 或 yarn
 - docker
 - Google AI API Key（用於 Gemini 模型）
+- LibreOffice (支援.doc file 必須)
 
 ### 安裝步驟
 
