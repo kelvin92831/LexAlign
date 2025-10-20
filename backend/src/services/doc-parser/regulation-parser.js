@@ -3,22 +3,34 @@ import * as cheerio from 'cheerio';
 import { logger } from '../../utils/logger.js';
 import { ValidationError } from '../../utils/errors.js';
 import { DiffTypes } from './types.js';
+import { convertDocToDocx, needsConversion, cleanupConvertedFile } from '../../utils/doc-converter.js';
 
 /**
- * 解析法規修正對照表（docx）
+ * 解析法規修正對照表（docx 和 doc）
  */
 export class RegulationParser {
   /**
-   * 解析 docx 檔案
+   * 解析 docx 或 doc 檔案
    * @param {string} filePath - 檔案路徑
    * @returns {Promise<RegulationDiffDoc>}
    */
   async parse(filePath, filename) {
+    let actualFilePath = filePath;
+    let needsCleanup = false;
+
     try {
       logger.info(`開始解析法規文件: ${filename}`);
 
+      // 如果是 .doc 文件，先转换为 .docx
+      if (needsConversion(filePath)) {
+        logger.info('檢測到 .doc 文件，開始自動轉換為 .docx...');
+        actualFilePath = await convertDocToDocx(filePath);
+        needsCleanup = true;
+        logger.info('轉換完成，繼續解析');
+      }
+
       // 使用 mammoth 轉換為 HTML（保留表格結構）
-      const result = await mammoth.convertToHtml({ path: filePath });
+      const result = await mammoth.convertToHtml({ path: actualFilePath });
       const html = result.value;
 
       if (!html || html.trim().length === 0) {
@@ -31,7 +43,7 @@ export class RegulationParser {
       // 如果沒有解析到表格，嘗試純文本解析（備用方案）
       if (items.length === 0) {
         logger.warn('未偵測到表格結構，嘗試純文本解析');
-        const textResult = await mammoth.extractRawText({ path: filePath });
+        const textResult = await mammoth.extractRawText({ path: actualFilePath });
         const fallbackItems = this.parseTextContent(textResult.value);
         if (fallbackItems.length > 0) {
           return {
@@ -52,6 +64,11 @@ export class RegulationParser {
     } catch (error) {
       logger.error('法規文件解析失敗', { error: error.message });
       throw error;
+    } finally {
+      // 清理转换后的临时文件
+      if (needsCleanup && actualFilePath !== filePath) {
+        await cleanupConvertedFile(actualFilePath);
+      }
     }
   }
 

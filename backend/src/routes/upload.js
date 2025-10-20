@@ -244,7 +244,7 @@ router.post('/policy/auto-load', async (req, res, next) => {
       throw new ValidationError('找不到內規文件資料夾：' + rulesDir);
     }
 
-    // 讀取資料夾內所有 .docx 檔案
+    // 讀取資料夾內所有 .docx 和 .doc 檔案
     const files = await fs.readdir(rulesDir);
     const docxFiles = files.filter(file => 
       file.endsWith('.docx') || file.endsWith('.doc')

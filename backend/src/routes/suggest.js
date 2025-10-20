@@ -7,6 +7,7 @@ import { config } from '../config/index.js';
 import { geminiService } from '../services/llm/gemini-service.js';
 import { logger } from '../utils/logger.js';
 import { ValidationError } from '../utils/errors.js';
+import { convertDocToDocx, needsConversion, cleanupConvertedFile } from '../utils/doc-converter.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -238,12 +239,22 @@ async function prepareFullDocumentContexts(policyContexts) {
     if (processedDocs.has(doc.name)) continue;
     
     const filePath = path.join(rulesDir, doc.name);
+    let actualFilePath = filePath;
+    let needsCleanup = false;
     
     try {
       logger.info(`讀取完整文件: ${doc.name} (${doc.isMain ? '主規章' : '附件範本'})`);
       
+      // 如果是 .doc 文件，先转换为 .docx
+      if (needsConversion(filePath)) {
+        logger.info(`檢測到 .doc 文件，開始自動轉換: ${doc.name}`);
+        actualFilePath = await convertDocToDocx(filePath);
+        needsCleanup = true;
+        logger.info('轉換完成，繼續讀取');
+      }
+      
       // 讀取完整文件
-      const result = await mammoth.extractRawText({ path: filePath });
+      const result = await mammoth.extractRawText({ path: actualFilePath });
       const fullContent = result.value;
       
       // 提取相關章節（從片段的 metadata）
@@ -281,6 +292,11 @@ async function prepareFullDocumentContexts(policyContexts) {
           });
         }
       });
+    } finally {
+      // 清理转换后的临时文件
+      if (needsCleanup && actualFilePath !== filePath) {
+        await cleanupConvertedFile(actualFilePath);
+      }
     }
   }
   

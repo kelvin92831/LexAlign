@@ -1,7 +1,7 @@
 import { ValidationError } from './errors.js';
 
 /**
- * 驗證檔案類型
+ * 驗證檔案類型（支持 .doc 和 .docx）
  */
 export function validateDocxFile(file) {
   if (!file) {
@@ -9,12 +9,16 @@ export function validateDocxFile(file) {
   }
 
   const allowedMimes = [
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+    'application/msword', // .doc
     'application/octet-stream', // 有些系統會回傳這個
   ];
 
-  if (!allowedMimes.includes(file.mimetype) && !file.originalname.endsWith('.docx')) {
-    throw new ValidationError('只支援 .docx 格式檔案');
+  const filename = file.originalname.toLowerCase();
+  const hasValidExtension = filename.endsWith('.docx') || filename.endsWith('.doc');
+
+  if (!allowedMimes.includes(file.mimetype) && !hasValidExtension) {
+    throw new ValidationError('只支援 .doc 或 .docx 格式檔案');
   }
 
   return true;

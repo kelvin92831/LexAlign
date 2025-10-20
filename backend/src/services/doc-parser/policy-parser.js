@@ -2,9 +2,10 @@ import mammoth from 'mammoth';
 import { logger } from '../../utils/logger.js';
 import { ValidationError } from '../../utils/errors.js';
 import { config } from '../../config/index.js';
+import { convertDocToDocx, needsConversion, cleanupConvertedFile } from '../../utils/doc-converter.js';
 
 /**
- * 解析內規文件（docx）
+ * 解析內規文件（docx 和 doc）
  */
 export class PolicyParser {
   /**
@@ -14,11 +15,22 @@ export class PolicyParser {
    * @returns {Promise<PolicyChunk[]>}
    */
   async parse(filePath, filename) {
+    let actualFilePath = filePath;
+    let needsCleanup = false;
+
     try {
       logger.info(`開始解析內規文件: ${filename}`);
 
+      // 如果是 .doc 文件，先转换为 .docx
+      if (needsConversion(filePath)) {
+        logger.info('檢測到 .doc 文件，開始自動轉換為 .docx...');
+        actualFilePath = await convertDocToDocx(filePath);
+        needsCleanup = true;
+        logger.info('轉換完成，繼續解析');
+      }
+
       // 讀取文件
-      const result = await mammoth.extractRawText({ path: filePath });
+      const result = await mammoth.extractRawText({ path: actualFilePath });
       const text = result.value;
 
       if (!text || text.trim().length === 0) {
@@ -37,6 +49,11 @@ export class PolicyParser {
     } catch (error) {
       logger.error('內規文件解析失敗', { error: error.message });
       throw error;
+    } finally {
+      // 清理转换后的临时文件
+      if (needsCleanup && actualFilePath !== filePath) {
+        await cleanupConvertedFile(actualFilePath);
+      }
     }
   }
 
