@@ -166,7 +166,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 cp 您的內規文件.docx data/internal_rules/
 ```
 
-**注意**：系統會自動讀取此資料夾的所有 .docx 檔案，無需手動上傳。
+**注意**：系統會自動讀取此資料夾的所有 .docx .doc 檔案，無需手動上傳。
 
 ### 步驟 2：上傳法規文件
 
@@ -283,6 +283,7 @@ cp 新的內規.docx data/internal_rules/
 │
 ├── start-all.sh                # 快速啟動腳本
 └── stop-all.sh                 # 快速結束腳本
+└── test-rag-matching.sh        # 只用來驗證 RAG
 
 ```
 
@@ -316,7 +317,7 @@ cp 新的內規.docx data/internal_rules/
 專案內附測試資料：
 
 - 法規文件：`data/official_documents/0002_114000918附件1(差異比較表).docx`
-- 內規文件：`data/internal_rules/` 資料夾內的所有 .docx 檔案
+- 內規文件：`data/internal_rules/` 資料夾內的所有 .docx .doc 檔案
 
 可直接上傳進行測試。
 
@@ -333,6 +334,13 @@ npm run test
 cd frontend
 npm run lint
 ```
+
+### RAG 測試
+回到根目錄執行腳本：
+
+  ```bash
+    ./test-rag-matching.sh
+  ```
 
 ---
 
