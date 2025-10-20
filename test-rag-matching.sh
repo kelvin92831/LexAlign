@@ -26,6 +26,105 @@ echo -e "${BLUE}╚════════════════════�
 echo ""
 
 # ============================================
+# 前置检查：ChromaDB 状态
+# ============================================
+echo -e "${BLUE}🔍 检查系统依赖...${NC}"
+echo ""
+
+# 检查 Docker
+if ! command -v docker &> /dev/null; then
+    echo -e "${YELLOW}⚠️  警告：未安装 Docker${NC}"
+    echo "ChromaDB 需要 Docker 运行"
+    echo ""
+    echo "请选择："
+    echo "1. 安装 Docker：https://www.docker.com/products/docker-desktop"
+    echo "2. 或使用 Python 安装 ChromaDB：pip install chromadb && chroma run --host localhost --port 8000"
+    echo ""
+    read -p "已经手动启动 ChromaDB？(y/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+else
+    echo -e "${GREEN}✅ Docker 已安装${NC}"
+    
+    # 检查 ChromaDB 容器是否已在运行
+    if docker ps | grep -q chromadb/chroma; then
+        echo -e "${GREEN}✅ ChromaDB 容器已在运行${NC}"
+    else
+        echo -e "${YELLOW}⚠️  ChromaDB 容器未运行${NC}"
+        echo ""
+        echo -e "${BLUE}📦 启动 ChromaDB 容器...${NC}"
+        
+        # 检查是否有旧容器
+        if docker ps -a | grep -q chroma-regulation; then
+            echo "   移除旧容器..."
+            docker rm -f chroma-regulation 2>/dev/null || true
+        fi
+        
+        # 启动新容器
+        docker run -d \
+            --name chroma-regulation \
+            -p 8000:8000 \
+            -v chroma-data:/chroma/chroma \
+            chromadb/chroma:latest
+        
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}✅ ChromaDB 容器已启动${NC}"
+            echo "   等待 ChromaDB 初始化..."
+            sleep 5
+        else
+            echo -e "${RED}❌ ChromaDB 容器启动失败${NC}"
+            exit 1
+        fi
+    fi
+fi
+
+# 验证 ChromaDB 连线
+echo ""
+echo -e "${BLUE}🔍 验证 ChromaDB 连线...${NC}"
+RETRY_COUNT=0
+MAX_RETRIES=5
+
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    if curl -s http://localhost:8000/api/v1/heartbeat > /dev/null 2>&1; then
+        echo -e "${GREEN}✅ ChromaDB 服务正常运行${NC}"
+        break
+    else
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+        if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+            echo -e "${YELLOW}   等待 ChromaDB 启动... ($RETRY_COUNT/$MAX_RETRIES)${NC}"
+            sleep 2
+        else
+            echo -e "${RED}❌ 无法连接到 ChromaDB (http://localhost:8000)${NC}"
+            echo "请确认 ChromaDB 服务已启动"
+            echo ""
+            echo "手动检查："
+            echo "  curl http://localhost:8000/api/v1/heartbeat"
+            exit 1
+        fi
+    fi
+done
+
+# 检查后端服务
+echo ""
+echo -e "${BLUE}🔍 检查后端服务...${NC}"
+if curl -s http://localhost:3001/api/upload/policy/check > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ 后端服务正常运行${NC}"
+else
+    echo -e "${RED}❌ 后端服务未响应${NC}"
+    echo "请先启动后端服务："
+    echo "  cd backend && npm run dev"
+    exit 1
+fi
+
+echo ""
+echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${GREEN}✨ 系统检查完成，开始测试...${NC}"
+echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+
+# ============================================
 # 步骤 1：上传法规文件
 # ============================================
 echo -e "${GREEN}[步骤 1/5]${NC} 上传法规文件..."
