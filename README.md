@@ -282,7 +282,7 @@ cp 新的內規.docx data/internal_rules/
 ├── README.md                   # 專案說明
 │
 ├── start-all.sh                # 快速啟動腳本
-└── stop-all.sh                 # 快速結束腳本
+├── stop-all.sh                 # 快速結束腳本
 └── test-rag-matching.sh        # 只用來驗證 RAG
 
 ```
