@@ -169,20 +169,26 @@ ${contextText}
 請以 JSON 格式回應，包含以下欄位：
 
 {
-  "file": "受影響的內規文件名稱（請使用完整文件名，優先使用主規章）",
-  "section": "需要修改的具體章節或條號（例如：第二章第三條第一款）",
-  "diff_summary": "法規修正重點摘要（50字內）",
+  "file": "受影響的內規文件名稱（字符串，請使用完整文件名，優先使用主規章）",
+  "section": "需要修改的具體章節或條號（字符串，例如：第二章第三條第一款）",
+  "diff_summary": "法規修正重點摘要（字符串，50字內）",
   "change_type": "${diffItem.diffType}",
-  "suggestion_text": "建議的修正文句或段落（請直接引用文件中的現有條文，並提出具體修改）",
-  "reason": "修改理由與依據（說明法規修訂與現行內規的落差，明確指出需要在哪個位置修改什麼內容）"
+  "suggestion_text": "建議的修正文句或段落（字符串，請直接引用文件中的現有條文，並提出具體修改）",
+  "reason": "修改理由與依據（字符串，說明法規修訂與現行內規的落差，明確指出需要在哪個位置修改什麼內容）"
 }
 
-請注意：
-1. 建議修正文 應該是可直接使用的具體文字，基於完整文件的實際內容
-2. 明確指出修改位置（例如：在第二章「名詞定義」新增第X條）
-3. 理由中應引用完整文件的現行條文，說明與法規的差異
-4. 如果完整文件中已有符合法規的條文，可建議「無需修改」並說明理由
-5. 回應必須是有效的 JSON 格式，不要包含其他文字
+⚠️ 重要格式要求：
+1. **所有字段值必须是字符串类型**，不要使用嵌套对象或数组
+2. 如需表达修改前后，请在 suggestion_text 中用文字描述，例如：
+   "建議將「資訊系統」修改為「資通系統」"
+   或
+   "修改前：...（現行條文）\n修改後：...（建議條文）"
+3. 不要返回 {"修改前": "...", "修改後": "..."} 这样的对象格式
+4. 建議修正文應該是可直接使用的具體文字，基於完整文件的實際內容
+5. 明確指出修改位置（例如：在第二章「名詞定義」新增第X條）
+6. 理由中應引用完整文件的現行條文，說明與法規的差異
+7. 如果完整文件中已有符合法規的條文，可建議「無需修改」並說明理由
+8. 回應必須是有效的 JSON 格式，不要包含其他文字
 
 請開始分析並提供建議：`;
   }
@@ -225,17 +231,33 @@ ${contextText}
         section: parsed.section?.substring(0, 30),
       });
 
-      // 確保必要欄位存在
+      // === 辅助函数：确保字段是字符串 ===
+      const ensureString = (value, fallback = '') => {
+        if (typeof value === 'string') {
+          return value;
+        }
+        if (typeof value === 'object' && value !== null) {
+          // 如果是对象，尝试转换为字符串格式
+          if (value.修改前 && value.修改後) {
+            return `修改前：${value.修改前}\n\n修改後：${value.修改後}`;
+          }
+          // 其他对象格式，转为 JSON 字符串
+          return JSON.stringify(value, null, 2);
+        }
+        return String(value || fallback);
+      };
+
+      // 確保必要欄位存在且为字符串
       return {
-        file: parsed.file || defaultDoc,
-        section: parsed.section || defaultSection,
-        diff_summary: parsed.diff_summary || diffItem.sectionTitle,
-        change_type: parsed.change_type || diffItem.diffType,
-        suggestion_text: parsed.suggestion_text || '',
-        reason: parsed.reason || '',
+        file: ensureString(parsed.file, defaultDoc),
+        section: ensureString(parsed.section, defaultSection),
+        diff_summary: ensureString(parsed.diff_summary, diffItem.sectionTitle),
+        change_type: ensureString(parsed.change_type, diffItem.diffType),
+        suggestion_text: ensureString(parsed.suggestion_text, ''),
+        reason: ensureString(parsed.reason, ''),
         trace: {
           regulation_anchor: diffItem.sectionTitle,
-          policy_anchor: parsed.section || '',
+          policy_anchor: ensureString(parsed.section, ''),
         },
       };
     } catch (error) {
@@ -255,16 +277,28 @@ ${contextText}
           const defaultSection = enhancedContexts[0]?.relevant_sections?.[0] || 
                                  enhancedContexts[0]?.section || '未指定';
           
+          // 辅助函数：确保字段是字符串
+          const ensureString = (value, fallback = '') => {
+            if (typeof value === 'string') return value;
+            if (typeof value === 'object' && value !== null) {
+              if (value.修改前 && value.修改後) {
+                return `修改前：${value.修改前}\n\n修改後：${value.修改後}`;
+              }
+              return JSON.stringify(value, null, 2);
+            }
+            return String(value || fallback);
+          };
+          
           return {
-            file: extracted.file || defaultDoc,
-            section: extracted.section || defaultSection,
-            diff_summary: extracted.diff_summary || diffItem.sectionTitle,
-            change_type: extracted.change_type || diffItem.diffType,
-            suggestion_text: extracted.suggestion_text || '',
-            reason: extracted.reason || '',
+            file: ensureString(extracted.file, defaultDoc),
+            section: ensureString(extracted.section, defaultSection),
+            diff_summary: ensureString(extracted.diff_summary, diffItem.sectionTitle),
+            change_type: ensureString(extracted.change_type, diffItem.diffType),
+            suggestion_text: ensureString(extracted.suggestion_text, ''),
+            reason: ensureString(extracted.reason, ''),
             trace: {
               regulation_anchor: diffItem.sectionTitle,
-              policy_anchor: extracted.section || '',
+              policy_anchor: ensureString(extracted.section, ''),
             },
           };
         }

@@ -3,6 +3,27 @@
 import { useState } from 'react';
 import { apiClient } from '@/lib/api';
 
+/**
+ * 确保值可以安全渲染（防止对象类型错误）
+ */
+function formatValue(value) {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'object') {
+    // 如果是包含"修改前"和"修改後"的对象，格式化为字符串
+    if (value.修改前 && value.修改後) {
+      return `修改前：${value.修改前}\n\n修改後：${value.修改後}`;
+    }
+    // 其他对象，转为 JSON 字符串
+    return JSON.stringify(value, null, 2);
+  }
+  return String(value);
+}
+
 export default function ResultsSection({ taskId, suggestions, onReset }) {
   const [downloading, setDownloading] = useState(false);
   const [viewMode, setViewMode] = useState('by_document'); // 'by_regulation' or 'by_document'
@@ -243,7 +264,7 @@ function ChangeItem({ change, index }) {
           📝 修改摘要
         </p>
         <p className="text-sm text-gray-800 leading-relaxed">
-          {change.diff_summary}
+          {formatValue(change.diff_summary)}
         </p>
       </div>
 
@@ -254,7 +275,7 @@ function ChangeItem({ change, index }) {
         </p>
         <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
           <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
-            {change.suggestion_text}
+            {formatValue(change.suggestion_text)}
           </p>
         </div>
       </div>
@@ -266,7 +287,7 @@ function ChangeItem({ change, index }) {
         </p>
         <div className="bg-gray-100 rounded-lg p-4">
           <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-            {change.reason}
+            {formatValue(change.reason)}
           </p>
         </div>
       </div>
@@ -334,8 +355,8 @@ function RegulationCard({ index, suggestion, expanded, onToggle }) {
               📄 {suggestion.file}
             </p>
             <p className="text-sm text-gray-700 font-medium">
-              {suggestion.diff_summary?.substring(0, 100)}
-              {suggestion.diff_summary?.length > 100 ? '...' : ''}
+              {formatValue(suggestion.diff_summary)?.substring(0, 100)}
+              {formatValue(suggestion.diff_summary)?.length > 100 ? '...' : ''}
             </p>
           </div>
           <button className="ml-4 text-gray-400 hover:text-gray-600">
@@ -362,7 +383,7 @@ function RegulationCard({ index, suggestion, expanded, onToggle }) {
             </h4>
             <div className="bg-white rounded-lg p-4 border border-gray-200">
               <p className="text-sm text-gray-800 whitespace-pre-wrap">
-                {suggestion.suggestion_text}
+                {formatValue(suggestion.suggestion_text)}
               </p>
             </div>
           </div>
@@ -374,7 +395,7 @@ function RegulationCard({ index, suggestion, expanded, onToggle }) {
             </h4>
             <div className="bg-white rounded-lg p-4 border border-gray-200">
               <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                {suggestion.reason}
+                {formatValue(suggestion.reason)}
               </p>
             </div>
           </div>
