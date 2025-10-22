@@ -112,13 +112,14 @@ export class GeminiService {
       .map((ctx, i) => {
         if (ctx.type === 'full_document') {
           // 完整文件格式
-          return `【完整內規文件 ${i + 1}】${i === 0 ? '✨ 最相關文件（建議修改此文件）' : ''}
+          return `【完整內規文件 ${i + 1}】${i === 0 ? '🎯 修改目標文件' : '📖 參考文件'}
 文件：${ctx.doc_name}
 文件類型：${ctx.is_primary ? '主規章' : '附件範本'}
 相似度分數：${ctx.distance?.toFixed(3) || 'N/A'}（距離越小越相關）
 文件長度：${ctx.content?.length || 0} 字
 最相關章節：${ctx.relevant_sections?.join('、') || '(整份文件)'}
 檢索到片段數：${ctx.snippet_count || 0} 個
+${i === 0 ? '\n⚠️ 請為此文件生成修改建議' : ''}
 
 📄 完整文件內容：
 ${ctx.content}
@@ -141,10 +142,16 @@ ${ctx.content}
       })
       .join('\n');
 
+    const targetDoc = enhancedContexts[0];  // 第一個文件是目標文件
+    const hasReference = enhancedContexts.length > 1;
+
     return `你是一位專業的法規遵循顧問，協助公司依據最新法規修訂內部規章。
 
 # 任務
 請根據以下法規修正內容，分析對應的公司內規文件，並提供修改建議。
+
+⚠️ **重要**: 你的任務是為【${targetDoc.doc_name}】這份文件生成修改建議。
+${hasReference ? '其他文件僅供參考，不需要為它們生成建議。' : ''}
 
 # 法規修正資訊
 條文標題：${diffItem.sectionTitle}
@@ -158,18 +165,18 @@ ${diffItem.explanation ? `說明：\n${diffItem.explanation}\n` : ''}
 ${contextText}
 
 # 分析指引
-1. **優先參考標記為「✨ 最相關文件」的完整文件（即相似度分數最低的文件）**
-2. **建議修改相似度最高的文件**，不論是主規章還是附件範本
-3. 仔細閱讀「最相關章節」標記的部分，但也要縱觀整份文件
-4. 如有多份文件，補充文件僅作為參考，不建議修改
-5. 請在完整文件中定位需要修改的具體位置（章、節、條、款、項）
-6. 建議修改應基於文件中的實際條文內容
+1. **你的建議目標是「完整內規文件 1」：${targetDoc.doc_name}**
+2. 仔細閱讀目標文件的「最相關章節」標記的部分，但也要縱觀整份文件
+3. ${hasReference ? '如有其他文件，僅作為參考理解，不要為它們生成建議' : ''}
+4. 請在目標文件中定位需要修改的具體位置（章、節、條、款、項）
+5. 建議修改應基於目標文件中的實際條文內容
+6. 如果目標文件已符合法規要求，可建議「無需修改」並說明理由
 
 # 輸出要求
 請以 JSON 格式回應，包含以下欄位：
 
 {
-  "file": "受影響的內規文件名稱（字符串，請使用相似度分數最低的文件名稱）",
+  "file": "${targetDoc.doc_name}",
   "section": "需要修改的具體章節或條號（字符串，例如：第二章第三條第一款）",
   "diff_summary": "法規修正重點摘要（字符串，50字內）",
   "change_type": "${diffItem.diffType}",

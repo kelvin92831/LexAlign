@@ -57,27 +57,62 @@ router.post('/', async (req, res, next) => {
       try {
         logger.info(`生成建議: ${match.diffItem.sectionTitle}`);
 
-        // === 新增：準備完整文件上下文 ===
+        // === 準備完整文件上下文 ===
         const enhancedContexts = await prepareFullDocumentContexts(match.policyContexts);
         
-        const suggestion = await geminiService.generateSuggestion(
-          match.diffItem,
-          enhancedContexts
-        );
+        logger.info(`找到 ${enhancedContexts.length} 個相關文件，將分別生成建議`);
+        
+        // === 修改：對每個文件分別生成建議 ===
+        for (let i = 0; i < enhancedContexts.length; i++) {
+          const currentContext = enhancedContexts[i];
+          
+          try {
+            logger.info(`  [${i + 1}/${enhancedContexts.length}] 為文件生成建議: ${currentContext.doc_name}`);
+            
+            // 為當前文件生成建議（只傳入當前文件作為主要上下文，其他作為參考）
+            const contextForThisFile = [
+              currentContext,  // 當前目標文件
+              ...enhancedContexts.filter((_, idx) => idx !== i).slice(0, 2)  // 其他文件作為參考（最多2個）
+            ];
+            
+            const suggestion = await geminiService.generateSuggestion(
+              match.diffItem,
+              contextForThisFile
+            );
 
-        suggestions.push(suggestion);
+            suggestions.push(suggestion);
+          } catch (fileError) {
+            logger.error(`  為文件生成建議失敗: ${currentContext.doc_name}`, {
+              error: fileError.message,
+            });
+
+            // 加入錯誤記錄
+            suggestions.push({
+              file: currentContext.doc_name,
+              section: match.diffItem.sectionTitle,
+              diff_summary: match.diffItem.sectionTitle,
+              change_type: match.diffItem.diffType,
+              suggestion_text: '（建議生成失敗，請人工處理）',
+              reason: `生成失敗: ${fileError.message}`,
+              trace: {
+                regulation_anchor: match.diffItem.sectionTitle,
+                policy_anchor: '',
+              },
+            });
+          }
+        }
       } catch (error) {
-        logger.error(`生成建議失敗: ${match.diffItem.sectionTitle}`, {
+        logger.error(`處理法規條文失敗: ${match.diffItem.sectionTitle}`, {
           error: error.message,
         });
 
         // 加入錯誤記錄
         suggestions.push({
-          file: '生成失敗',
+          file: '處理失敗',
           section: match.diffItem.sectionTitle,
           diff_summary: match.diffItem.sectionTitle,
           change_type: match.diffItem.diffType,
-          suggestion_text: '（建議生成失敗，請人工處理）',
+          suggestion_text: '（處理失敗，請人工處理）',
           reason: error.message,
           trace: {
             regulation_anchor: match.diffItem.sectionTitle,
