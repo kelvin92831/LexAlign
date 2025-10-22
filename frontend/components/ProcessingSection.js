@@ -21,7 +21,8 @@ export default function ProcessingSection({ taskId, onComplete }) {
       setProgress(10);
 
       await new Promise(resolve => setTimeout(resolve, 500));
-      const matchResult = await apiClient.match(taskId, 5);
+      // 不传递 topK，使用后端配置的值
+      const matchResult = await apiClient.match(taskId);
       
       setProgress(50);
       await new Promise(resolve => setTimeout(resolve, 500));

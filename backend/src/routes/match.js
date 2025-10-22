@@ -8,6 +8,13 @@ import { ValidationError } from '../utils/errors.js';
 
 const router = express.Router();
 
+// 显示 RAG 配置（启动时）
+logger.info('RAG 配置已加载', {
+  topK: config.rag.topK,
+  priorityDocId: config.rag.priorityDocId,
+  priorityWeight: config.rag.priorityWeight,
+});
+
 /**
  * 提取關鍵詞組
  * @param {string} text - 文本內容
@@ -217,7 +224,14 @@ router.post('/', async (req, res, next) => {
       throw new ValidationError('缺少 taskId 參數');
     }
 
-    logger.info('開始比對法規與內規', { taskId, topK });
+    // 使用請求中的 topK，如果未提供則使用配置檔中的值
+    const effectiveTopK = topK !== undefined ? topK : config.rag.topK;
+
+    logger.info('開始比對法規與內規', { 
+      taskId, 
+      topK: effectiveTopK,
+      source: topK !== undefined ? 'request' : 'config'
+    });
 
     // 讀取法規解析結果
     const resultPath = path.join(
@@ -244,7 +258,49 @@ router.post('/', async (req, res, next) => {
       const query = buildEnhancedQuery(item);
 
       // 搜尋相關內規
-      const contexts = await chromaService.search(query, topK);
+      let contexts = await chromaService.search(query, effectiveTopK);
+
+      // === 特定文件加權處理 ===
+      const priorityDocId = config.rag.priorityDocId;
+      const priorityWeight = config.rag.priorityWeight;
+      
+      if (priorityDocId && priorityWeight !== 1.0) {
+        logger.debug('應用文件加權', { 
+          priorityDocId, 
+          priorityWeight,
+          section: item.sectionTitle 
+        });
+        
+        contexts = contexts.map(ctx => {
+          const docId = ctx.metadata?.doc_id;
+          
+          // 如果是優先文件，降低 distance（提高相似度）
+          if (docId === priorityDocId) {
+            const originalDistance = ctx.distance;
+            const adjustedDistance = ctx.distance * priorityWeight;
+            
+            logger.debug('文件加權調整', {
+              doc_id: docId,
+              doc_name: ctx.metadata?.doc_name,
+              original_distance: originalDistance.toFixed(4),
+              adjusted_distance: adjustedDistance.toFixed(4),
+              boost: ((1 - priorityWeight) * 100).toFixed(1) + '%',
+            });
+            
+            return {
+              ...ctx,
+              distance: adjustedDistance,
+              original_distance: originalDistance,  // 保留原始距離供參考
+              is_boosted: true,
+            };
+          }
+          
+          return ctx;
+        });
+        
+        // 重新排序（按調整後的 distance）
+        contexts.sort((a, b) => a.distance - b.distance);
+      }
 
       matchResults.push({
         diffItem: item,
@@ -252,6 +308,8 @@ router.post('/', async (req, res, next) => {
           content: ctx.content,
           meta: ctx.metadata,
           distance: ctx.distance,
+          original_distance: ctx.original_distance,  // 如果有加權，保留原始距離
+          is_boosted: ctx.is_boosted || false,
         })),
       });
     }

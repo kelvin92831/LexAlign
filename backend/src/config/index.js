@@ -1,6 +1,23 @@
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-dotenv.config();
+// 获取当前文件的目录
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// 明确指定 .env 文件路径（在 backend 目录下）
+const envPath = join(__dirname, '../../.env');
+const result = dotenv.config({ path: envPath });
+
+// 调试：显示配置加载状态
+if (result.error) {
+  console.error('❌ .env 加载失败:', result.error.message);
+  console.error('   寻找路径:', envPath);
+} else {
+  console.log('✅ .env 加载成功:', envPath);
+  console.log('   TOP_K =', process.env.TOP_K);
+}
 
 export const config = {
   // 伺服器設定
@@ -26,6 +43,9 @@ export const config = {
     chunkSize: parseInt(process.env.CHUNK_SIZE) || 700,
     chunkOverlap: parseInt(process.env.CHUNK_OVERLAP) || 200,
     topK: parseInt(process.env.TOP_K) || 5,
+    // 特定文件加權設定
+    priorityDocId: process.env.PRIORITY_DOC_ID || 'SO-02-002',  // 優先文件 ID
+    priorityWeight: parseFloat(process.env.PRIORITY_WEIGHT) || 0.85,  // 權重係數（越小優先級越高）
   },
 
   // 檔案上傳設定

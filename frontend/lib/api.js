@@ -57,14 +57,22 @@ class ApiClient {
 
   /**
    * 執行比對
+   * @param {string} taskId - 任務 ID
+   * @param {number} [topK] - 檢索數量（可選，未提供時使用後端配置）
    */
-  async match(taskId, topK = 5) {
+  async match(taskId, topK) {
+    const body = { taskId };
+    // 只有明確提供 topK 時才加入請求中
+    if (topK !== undefined) {
+      body.topK = topK;
+    }
+    
     const response = await fetch(`${this.baseUrl}/api/match`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ taskId, topK }),
+      body: JSON.stringify(body),
     });
 
     return this.handleResponse(response);

@@ -17,7 +17,7 @@ NC='\033[0m' # No Color
 # 配置
 API_BASE="http://localhost:3001/api"
 REGULATION_FILE="/Users/kelvin92831/Ｔ_final/data/official_documents/0002_114000918附件1(差異比較表).docx"
-TOP_K=10  # 每条法规检索前10个最相关的内规文档
+TOP_K=15  # 每条法规检索前10个最相关的内规文档
 
 echo ""
 echo -e "${BLUE}╔════════════════════════════════════════════════════╗${NC}"

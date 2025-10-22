@@ -58,7 +58,10 @@ npm install
 #### 3. 設定環境變數
 
 建立 `backend/.env` 檔案（參考 `backend/src/config/keys.example.ts`）：
+
 (直接複製下面，API key 記得要改)
+
+(RAG 客製化設定可自行調整，但每次設定參數需要重啟後端)
 
 ```env
 # 伺服器設定
@@ -74,7 +77,11 @@ RAG_DB_TYPE=chroma
 CHROMA_PATH=./chroma_db
 CHUNK_SIZE=700
 CHUNK_OVERLAP=200
-TOP_K=5
+
+# RAG 客製設定
+TOP_K=10
+PRIORITY_DOC_ID=SO-02-002
+PRIORITY_WEIGHT=0.75
 
 # 檔案上傳設定
 MAX_FILE_SIZE=10485760
@@ -83,6 +90,9 @@ UPLOAD_PATH=./tmp/uploads
 # AI 生成設定
 TEMPERATURE=0.3
 MAX_OUTPUT_TOKENS=8192
+
+# 日誌設定
+LOG_LEVEL=INFO
 ```
 
 #### 4. 安裝前端依賴
