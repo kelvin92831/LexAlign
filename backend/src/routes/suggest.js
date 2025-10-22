@@ -223,12 +223,9 @@ async function prepareFullDocumentContexts(policyContexts) {
     );
   });
   
-  // 2. 排序：主規章優先，然後按相似度
+  // 2. 排序：只按相似度（不再優先主規章）
   const sortedDocs = Object.values(docGroups).sort((a, b) => {
-    // 主規章優先
-    if (a.isMain && !b.isMain) return -1;
-    if (!a.isMain && b.isMain) return 1;
-    // 相似度排序
+    // 直接按相似度排序（距離越小越相關）
     return a.bestDistance - b.bestDistance;
   });
   
