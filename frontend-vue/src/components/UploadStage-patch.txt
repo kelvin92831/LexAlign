@@ -1,0 +1,27 @@
+async function handleStartAnalysis() {
+  if (!regulationFile.value) return
+
+  try {
+    uploading.value = true
+    uploadProgress.value = 0
+
+    // 上傳法規文件
+    const response = await api.uploadRegulation(
+      regulationFile.value,
+      (progress) => {
+        uploadProgress.value = progress
+      }
+    )
+
+    // 發送任務 ID 和檔案名稱到父組件
+    emit('start', {
+      taskId: response.data.taskId,
+      fileName: regulationFile.value.name
+    })
+    
+  } catch (error) {
+    console.error('上傳失敗:', error)
+    alert('上傳失敗: ' + error.message)
+    uploading.value = false
+  }
+}

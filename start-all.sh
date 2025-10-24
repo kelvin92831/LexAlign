@@ -121,31 +121,31 @@ cd ..
 echo -e "${GREEN}✅ 後端服務已啟動 (PID: $BACKEND_PID)${NC}"
 sleep 3
 
-# 安裝前端依賴
+# 安裝 Vue 前端依賴
 echo ""
-echo -e "${BLUE}📦 檢查前端依賴...${NC}"
-cd frontend
+echo -e "${BLUE}📦 檢查 Vue 前端依賴...${NC}"
+cd frontend-vue
 if [ ! -d "node_modules" ]; then
-    echo "   安裝前端依賴..."
+    echo "   安裝 Vue 前端依賴..."
     npm install
 else
-    echo -e "${GREEN}✅ 前端依賴已安裝${NC}"
+    echo -e "${GREEN}✅ Vue 前端依賴已安裝${NC}"
 fi
 
-# 檢查 .env.local
-if [ ! -f ".env.local" ]; then
-    echo "   建立 .env.local..."
-    echo "NEXT_PUBLIC_API_URL=http://localhost:3001" > .env.local
+# 檢查 .env
+if [ ! -f ".env" ]; then
+    echo "   建立 .env..."
+    echo "VITE_API_URL=http://localhost:3001" > .env
 fi
 
-# 啟動前端
+# 啟動 Vue 前端
 echo ""
-echo -e "${BLUE}🎨 啟動前端應用...${NC}"
+echo -e "${BLUE}🎨 啟動 Vue 前端應用...${NC}"
 npm run dev &
 FRONTEND_PID=$!
 cd ..
 
-echo -e "${GREEN}✅ 前端應用已啟動 (PID: $FRONTEND_PID)${NC}"
+echo -e "${GREEN}✅ Vue 前端應用已啟動 (PID: $FRONTEND_PID)${NC}"
 
 # 等待服務啟動
 sleep 3
@@ -157,7 +157,7 @@ echo -e "${GREEN}✨ 系統啟動完成！${NC}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo -e "${BLUE}📍 服務位址：${NC}"
-echo "   • 前端介面：http://localhost:3000"
+echo "   • Vue 前端介面：http://localhost:3000"
 echo "   • 後端 API：http://localhost:3001"
 echo "   • ChromaDB：http://localhost:8000"
 echo ""

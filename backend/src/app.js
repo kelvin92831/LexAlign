@@ -9,6 +9,7 @@ import uploadRoutes from './routes/upload.js';
 import matchRoutes from './routes/match.js';
 import suggestRoutes from './routes/suggest.js';
 import downloadRoutes from './routes/download.js';
+import historyRoutes from './routes/history.js';
 
 // 初始化 Express
 const app = express();
@@ -41,6 +42,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/match', matchRoutes);
 app.use('/api/suggest', suggestRoutes);
 app.use('/api/download', downloadRoutes);
+app.use('/api/history', historyRoutes);
 
 // 404 處理
 app.use((req, res) => {
