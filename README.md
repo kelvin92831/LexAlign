@@ -63,6 +63,8 @@ npm install
 
 (RAG 客製化設定可自行調整，但每次設定參數需要重啟後端)
 
+(Top-k 設定會以前端數值優先)
+
 ```env
 # 伺服器設定
 PORT=3001
@@ -143,7 +145,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
   開另一個 powershell 執行： 
 
   ```bash
-  cd frontend
+  cd frontend-vue
   npm run dev
   ```
 
