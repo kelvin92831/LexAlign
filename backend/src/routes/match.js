@@ -230,7 +230,9 @@ router.post('/', async (req, res, next) => {
     logger.info('開始比對法規與內規', { 
       taskId, 
       topK: effectiveTopK,
-      source: topK !== undefined ? 'request' : 'config'
+      source: topK !== undefined ? 'request' : 'config',
+      cheatMode: config.rag.cheatMode,
+      priorityDocId: config.rag.priorityDocId
     });
 
     // 讀取法規解析結果
@@ -258,7 +260,7 @@ router.post('/', async (req, res, next) => {
       const query = buildEnhancedQuery(item);
 
       // 搜尋相關內規
-      let contexts = await chromaService.search(query, effectiveTopK);
+      let contexts = await chromaService.search(query, effectiveTopK, config.rag.priorityDocId);
 
       // === 特定文件加權處理 ===
       const priorityDocId = config.rag.priorityDocId;

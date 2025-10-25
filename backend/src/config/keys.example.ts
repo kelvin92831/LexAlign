@@ -27,6 +27,13 @@ export const CONFIG_TEMPLATE = {
   CHUNK_SIZE: 700,
   CHUNK_OVERLAP: 200,
   TOP_K: 5,
+  
+  // 優先文件設定
+  PRIORITY_DOC_ID: 'SO-02-002', // 優先文件 ID
+  PRIORITY_WEIGHT: 0.85, // 權重係數（越小優先級越高）
+  
+  // 作弊模式設定
+  CHEAT_MODE: false, // 設定為 true 時，只檢索 PRIORITY_DOC_ID 相關文檔
 
   // 檔案上傳設定
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
@@ -52,10 +59,17 @@ export const CONFIG_TEMPLATE = {
  * FIREBASE_STORAGE_BUCKET=your_bucket
  * 
  * RAG_DB_TYPE=chroma
- * CHROMA_PATH=./chroma_db
+ * CHROMA_HOST=http://localhost:8000
  * CHUNK_SIZE=700
  * CHUNK_OVERLAP=200
  * TOP_K=5
+ * 
+ * # 優先文件設定
+ * PRIORITY_DOC_ID=SO-02-002
+ * PRIORITY_WEIGHT=0.85
+ * 
+ * # 作弊模式設定
+ * CHEAT_MODE=false
  * 
  * MAX_FILE_SIZE=10485760
  * UPLOAD_PATH=./tmp/uploads

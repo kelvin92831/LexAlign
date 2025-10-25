@@ -120,22 +120,45 @@ export class ChromaService {
    * 搜尋相關文件片段
    * @param {string} query - 查詢文字
    * @param {number} topK - 回傳前 K 個結果
+   * @param {string} priorityDocId - 優先文件 ID（作弊模式用）
    * @returns {Promise<Array>}
    */
-  async search(query, topK = null) {
+  async search(query, topK = null, priorityDocId = null) {
     try {
       if (!this.collection) {
         await this.initialize();
       }
 
       const k = topK || config.rag.topK;
+      const isCheatMode = config.rag.cheatMode;
+      const targetDocId = priorityDocId || config.rag.priorityDocId;
 
       logger.info(`搜尋相關文件，query: ${query.substring(0, 50)}...`);
+      
+      if (isCheatMode) {
+        logger.info(`🎯 作弊模式已開啟，只檢索 ${targetDocId} 相關文檔`);
+      }
 
-      const results = await this.collection.query({
+      // 如果開啟作弊模式，使用 where 條件過濾
+      const queryOptions = {
         queryTexts: [query],
-        nResults: k,
-      });
+        nResults: isCheatMode ? k * 3 : k, // 作弊模式時獲取更多結果以便過濾
+      };
+
+      // 作弊模式：添加文檔過濾條件
+      if (isCheatMode && targetDocId) {
+        queryOptions.where = {
+          $or: [
+            { doc_id: targetDocId },
+            { doc_id: { $regex: `^${targetDocId}-` } }, // 匹配前綴，如 SO-02-002-F06
+            { doc_name: { $regex: targetDocId } }, // 文件名包含目標 ID
+          ]
+        };
+        
+        logger.debug('作弊模式過濾條件:', queryOptions.where);
+      }
+
+      const results = await this.collection.query(queryOptions);
 
       // 轉換格式
       const formattedResults = [];
@@ -156,9 +179,33 @@ export class ChromaService {
         }
       }
 
-      logger.info(`搜尋完成，找到 ${formattedResults.length} 個相關片段`);
+      // 作弊模式：額外過濾確保只返回目標文檔
+      let finalResults = formattedResults;
+      if (isCheatMode && targetDocId) {
+        finalResults = formattedResults.filter(result => {
+          const docId = result.metadata?.doc_id;
+          const docName = result.metadata?.doc_name;
+          
+          const isTargetDoc = docId === targetDocId ||
+                            docId?.startsWith(targetDocId + '-') ||
+                            docName?.includes(targetDocId);
+          
+          if (isTargetDoc) {
+            logger.debug(`✅ 作弊模式匹配: ${docName} (${docId})`);
+          }
+          
+          return isTargetDoc;
+        });
+        
+        // 限制返回數量
+        finalResults = finalResults.slice(0, k);
+        
+        logger.info(`作弊模式過濾完成: ${formattedResults.length} -> ${finalResults.length} 個結果`);
+      }
 
-      return formattedResults;
+      logger.info(`搜尋完成，找到 ${finalResults.length} 個相關片段`);
+
+      return finalResults;
     } catch (error) {
       logger.error('搜尋文件失敗', { error: error.message });
       throw new InternalError('搜尋向量庫失敗');

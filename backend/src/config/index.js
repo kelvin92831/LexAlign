@@ -46,6 +46,8 @@ export const config = {
     // 特定文件加權設定
     priorityDocId: process.env.PRIORITY_DOC_ID || 'SO-02-002',  // 優先文件 ID
     priorityWeight: parseFloat(process.env.PRIORITY_WEIGHT) || 0.85,  // 權重係數（越小優先級越高）
+    // 作弊模式設定
+    cheatMode: process.env.CHEAT_MODE === 'true',  // 作弊模式開關
   },
 
   // 檔案上傳設定

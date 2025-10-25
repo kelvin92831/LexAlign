@@ -13,17 +13,21 @@
 - ✅ RAG 向量檢索比對相關內規段落
 - ✅ AI 生成具體修改建議與理由（傳送完整文件給 LLM）
 - ✅ 匯出 Word 格式報告供審核（按文件分組）
+- ✅ 歷史記錄管理（自動保存、查看、刪除）
+- ✅ 相似度分析和關聯度排序
+- ✅ 可調整 AI 參數（Top-K、Temperature、Max Tokens）
 
 ### 技術架構
 
 | 層級 | 技術 |
 |------|------|
-| **前端** | Next.js 14 (App Router) + TailwindCSS |
+| **前端** | Vue 3 + Vite + TailwindCSS |
 | **後端** | Node.js + Express.js |
 | **AI 模型** | Google Gemini 2.5 Pro |
 | **向量資料庫** | ChromaDB |
 | **文件解析** | Mammoth (docx → HTML) + Cheerio (HTML 解析) |
 | **文件生成** | docx (Word generator) |
+| **歷史記錄** | 本地 JSON 文件存儲 |
 
 ---
 
@@ -85,6 +89,9 @@ TOP_K=10
 PRIORITY_DOC_ID=SO-02-002
 PRIORITY_WEIGHT=0.75
 
+# 作弊模式
+CHEAT_MODE=false
+
 # 檔案上傳設定
 MAX_FILE_SIZE=10485760
 UPLOAD_PATH=./tmp/uploads
@@ -102,16 +109,16 @@ LOG_LEVEL=INFO
 開啟新的終端機視窗：
 
 ```bash
-cd frontend
+cd frontend-vue
 npm install
 ```
 
 #### 5. 設定前端環境變數
 
-建立 `frontend/.env.local` 檔案：
+建立 `frontend-vue/.env` 檔案：
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:3001
+VITE_API_URL=http://localhost:3001
 ```
 
 ### 啟動步驟
@@ -179,14 +186,17 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 cp 您的內規文件.docx data/internal_rules/
 ```
 
-**注意**：系統會自動讀取此資料夾的所有 .docx .doc 檔案，無需手動上傳。
+系統會自動讀取此資料夾的所有 .docx .doc 檔案，無需手動上傳。
+
+首次進行分析時，需要按下「建立向量資料庫」！ 
 
 ### 步驟 2：上傳法規文件
 
 1. 開啟系統首頁 `http://localhost:3000`
 2. 查看「內規資料夾狀態」（確認系統已偵測到內規文件）
 3. 上傳**法規修正對照表**（.docx 格式）
-4. 點擊「開始分析」
+4. 調整 AI 設定（Top-K、Temperature 等）
+5. 點擊「開始智能分析」
 
 ### 步驟 3：自動比對分析
 
@@ -200,16 +210,22 @@ cp 您的內規文件.docx data/internal_rules/
 
 ### 步驟 4：查看結果
 
-系統提供兩種檢視方式：
+系統提供多種檢視方式：
 
 **📁 按文件分組檢視（預設）**
 - 以內規文件為單位分組顯示
 - 每個文件顯示需要的所有修改
+- 支援相似度排序和統計
 - 適合實際修訂內規時使用
 
 **📋 按法規條文檢視**
 - 以法規修正條文為單位顯示
 - 適合追蹤法規遵循狀況
+
+**📊 相似度分析**
+- 顯示關聯度統計（高/中/低相似度）
+- 支援按相似度排序
+- 提供視覺化關聯度條形圖
 
 每條建議包含：
 - 法規修正摘要
@@ -255,7 +271,8 @@ cp 新的內規.docx data/internal_rules/
 │   │   │   ├── upload.js       # 文件上傳
 │   │   │   ├── match.js        # 比對檢索
 │   │   │   ├── suggest.js      # 建議生成
-│   │   │   └── download.js     # 報告下載
+│   │   │   ├── download.js     # 報告下載
+│   │   │   └── history.js      # 歷史記錄管理
 │   │   ├── services/           # 核心服務
 │   │   │   ├── doc-parser/     # 文件解析
 │   │   │   ├── rag/            # 向量檢索
@@ -265,29 +282,34 @@ cp 新的內規.docx data/internal_rules/
 │   │   └── app.js              # 主程式
 │   └── package.json
 │
-├── frontend/                   # 前端應用
-│   ├── app/                    # Next.js 頁面
-│   │   ├── page.js             # 主頁面
-│   │   ├── layout.js           # 布局
-│   │   └── globals.css         # 全域樣式
-│   ├── components/             # UI 元件
-│   │   ├── UploadSection.js    # 上傳區塊
-│   │   ├── ProcessingSection.js # 處理區塊
-│   │   └── ResultsSection.js   # 結果區塊
-│   ├── lib/                    # 前端工具
-│   │   └── api.js              # API 客戶端
+├── frontend-vue/               # Vue 3 前端應用
+│   ├── src/
+│   │   ├── components/         # Vue 元件
+│   │   │   ├── UploadStage.vue  # 上傳階段
+│   │   │   ├── ProcessingStage.vue # 處理階段
+│   │   │   ├── ResultsStage.vue # 結果階段
+│   │   │   ├── HistoryList.vue  # 歷史記錄
+│   │   │   └── ...              # 其他元件
+│   │   ├── services/           # 前端服務
+│   │   │   └── api.js          # API 客戶端
+│   │   ├── stores/             # Pinia 狀態管理
+│   │   ├── views/              # 頁面視圖
+│   │   └── main.js             # 主程式
 │   └── package.json
+│
+├── frontend/                   # Next.js 前端（舊版）
+│   └── ...                     # Next.js 相關檔案
 │
 ├── data/                       # 資料檔案
 │   ├── internal_rules/         # 內規文件（系統自動讀取）
-│   └── official_documents/     # 法規文件（測試用）
+│   ├── official_documents/     # 法規文件（測試用）
+│   └── history/                # 歷史記錄存儲
 │
 ├── docs/                       # 專案文檔
 │   ├── API.md                  # API 文檔
 │   ├── ARCHITECTURE.md         # 架構文檔
 │   ├── USER_GUIDE.md           # 使用手冊
 │   └── DEPLOYMENT.md           # 部署指南
-│   
 │
 ├── PRD/                        # 產品需求文件
 │   └── 法規對應比對系統 PRD v1.0.md
@@ -317,6 +339,11 @@ cp 新的內規.docx data/internal_rules/
 | `/api/suggest` | POST | 生成 AI 建議 |
 | `/api/suggest/:taskId` | GET | 取得建議結果 |
 | `/api/download/:taskId` | GET | 下載報告（docx/json，按文件分組） |
+| `/api/history/save` | POST | 保存分析記錄到歷史 |
+| `/api/history/list` | GET | 取得歷史記錄列表 |
+| `/api/history/:id` | GET | 取得特定歷史記錄詳情 |
+| `/api/history/:id` | PUT | 更新歷史記錄（審閱狀態） |
+| `/api/history/:id` | DELETE | 刪除歷史記錄 |
 | `/health` | GET | 健康檢查 |
 
 **詳細 API 文檔**：參考 [docs/API.md](docs/API.md)
@@ -344,7 +371,7 @@ npm run test
 ### 前端測試
 
 ```bash
-cd frontend
+cd frontend-vue
 npm run lint
 ```
 
@@ -412,11 +439,21 @@ npm run lint
 
 ## 📝 版本資訊
 
-- **版本**：1.1.0
-- **發布日期**：2025-10-14
+- **版本**：2.0.0
+- **發布日期**：2025-10-25
 - **PRD 版本**：v1.0（參考 `PRD/法規對應比對系統 PRD v1.0.md`）
 
 ### 更新記錄
+
+**v2.0.0** (2025-10-25)
+- ✅ 前端改為 Vue 3 + Vite 架構
+- ✅ 新增歷史記錄管理功能
+- ✅ 新增相似度分析和排序功能
+- ✅ 新增關聯度視覺化顯示
+- ✅ 新增作弊模式（CHEAT_MODE）用於測試特定文檔
+- ✅ 改進 AI 設定界面（Top-K、Temperature 等）
+- ✅ 優化用戶體驗和界面設計
+- ✅ 新增歷史記錄的審閱狀態管理
 
 **v1.1.0** (2025-10-14)
 - ✅ 改為自動載入內規文件（從 `data/internal_rules` 資料夾）
