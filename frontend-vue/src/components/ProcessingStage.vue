@@ -205,6 +205,14 @@ async function processAnalysis() {
     
     const finalResult = await api.getSuggestions(props.taskId)
     
+    // 調試：檢查 API 響應
+    console.log('API 響應結構:', {
+      hasData: !!finalResult.data,
+      suggestionsCount: finalResult.data?.suggestions?.length || 0,
+      suggestionsByDocCount: finalResult.data?.suggestions_by_document?.length || 0,
+      taskId: finalResult.data?.taskId
+    })
+    
     // 傳遞處理時間到結果頁面
     emit('complete', {
       ...finalResult.data,

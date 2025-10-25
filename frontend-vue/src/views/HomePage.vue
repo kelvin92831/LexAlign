@@ -186,16 +186,24 @@ async function handleAnalysisComplete(analysisResults) {
   results.value = analysisResults
   stage.value = 'results'
   
+  // 調試：檢查數據結構
+  console.log('分析結果數據結構:', {
+    suggestions: analysisResults.suggestions?.length || 0,
+    suggestions_by_document: analysisResults.suggestions_by_document?.length || 0,
+    hasSuggestions: !!analysisResults.suggestions,
+    hasSuggestionsByDoc: !!analysisResults.suggestions_by_document
+  })
+  
   try {
     await api.saveToHistory(
       taskId.value,
       currentFileName.value,
-      analysisResults.suggestions,
+      analysisResults.suggestions || [],
       {
         regulationItems: analysisResults.suggestions?.length || 0,
         matchedDocuments: analysisResults.suggestions_by_document?.length || 0,
         totalSuggestions: analysisResults.suggestions?.length || 0,
-        suggestions_by_document: analysisResults.suggestions_by_document,
+        suggestions_by_document: analysisResults.suggestions_by_document || [],
         processingTime: analysisResults.processingTime || null
       }
     )

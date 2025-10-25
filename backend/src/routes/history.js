@@ -26,6 +26,16 @@ router.post('/save', async (req, res, next) => {
     await ensureHistoryDir();
 
     const { taskId, fileName, suggestions, metadata } = req.body;
+    
+    // 調試日誌
+    console.log('保存歷史記錄:', {
+      taskId,
+      fileName,
+      suggestionsCount: suggestions?.length || 0,
+      suggestionsByDocCount: metadata?.suggestions_by_document?.length || 0,
+      hasSuggestions: !!suggestions,
+      hasSuggestionsByDoc: !!metadata?.suggestions_by_document
+    });
 
     const historyRecord = {
       id: taskId,
@@ -39,7 +49,7 @@ router.post('/save', async (req, res, next) => {
         processingTime: metadata?.processingTime || null,
         ...metadata
       },
-      suggestions: suggestions,
+      suggestions: suggestions || [],
       suggestions_by_document: metadata?.suggestions_by_document || []
     };
 
