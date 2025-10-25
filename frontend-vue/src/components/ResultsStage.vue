@@ -155,11 +155,14 @@ const sortedDocuments = computed(() => {
   docs.forEach(doc => {
     const similarities = doc.changes
       .map(c => c.similarity)
-      .filter(s => s !== undefined && s !== null)
+      .filter(s => s !== undefined && s !== null && s > 0)
     
-    doc.avgSimilarity = similarities.length > 0
-      ? similarities.reduce((sum, s) => sum + s, 0) / similarities.length
-      : 0
+    if (similarities.length > 0) {
+      doc.avgSimilarity = similarities.reduce((sum, s) => sum + s, 0) / similarities.length
+    } else {
+      // 如果沒有相似度數據，嘗試從其他來源計算
+      doc.avgSimilarity = 0
+    }
   })
   
   switch (sortBy.value) {

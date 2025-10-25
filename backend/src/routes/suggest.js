@@ -217,6 +217,7 @@ function groupSuggestionsByDocument(suggestions) {
       suggestion_text: suggestion.suggestion_text,
       reason: suggestion.reason,
       trace: suggestion.trace,
+      similarity: suggestion.similarity || null, // 添加相似度數據
     });
     
     grouped[docName].total_changes++;

@@ -254,6 +254,9 @@ ${contextText}
         return String(value || fallback);
       };
 
+      // 計算相似度（從增強上下文中獲取）
+      const similarity = this.calculateSimilarityFromContext(enhancedContexts);
+
       // 確保必要欄位存在且为字符串
       return {
         file: ensureString(parsed.file, defaultDoc),
@@ -262,6 +265,7 @@ ${contextText}
         change_type: ensureString(parsed.change_type, diffItem.diffType),
         suggestion_text: ensureString(parsed.suggestion_text, ''),
         reason: ensureString(parsed.reason, ''),
+        similarity: similarity, // 添加相似度數據
         trace: {
           regulation_anchor: diffItem.sectionTitle,
           policy_anchor: ensureString(parsed.section, ''),
@@ -296,6 +300,9 @@ ${contextText}
             return String(value || fallback);
           };
           
+          // 計算相似度
+          const similarity = this.calculateSimilarityFromContext(enhancedContexts);
+
           return {
             file: ensureString(extracted.file, defaultDoc),
             section: ensureString(extracted.section, defaultSection),
@@ -303,6 +310,7 @@ ${contextText}
             change_type: ensureString(extracted.change_type, diffItem.diffType),
             suggestion_text: ensureString(extracted.suggestion_text, ''),
             reason: ensureString(extracted.reason, ''),
+            similarity: similarity, // 添加相似度數據
             trace: {
               regulation_anchor: diffItem.sectionTitle,
               policy_anchor: ensureString(extracted.section, ''),
@@ -324,6 +332,9 @@ ${contextText}
         diffItem: diffItem.sectionTitle.substring(0, 50),
       });
 
+      // 計算相似度
+      const similarity = this.calculateSimilarityFromContext(enhancedContexts);
+
       return {
         file: defaultDoc,
         section: defaultSection,
@@ -331,12 +342,33 @@ ${contextText}
         change_type: diffItem.diffType,
         suggestion_text: text.substring(0, 500),
         reason: '（AI 回應格式異常，請查看日誌）',
+        similarity: similarity, // 添加相似度數據
         trace: {
           regulation_anchor: diffItem.sectionTitle,
           policy_anchor: '',
         },
       };
     }
+  }
+
+  /**
+   * 從增強上下文中計算相似度
+   * @private
+   */
+  calculateSimilarityFromContext(enhancedContexts) {
+    if (!enhancedContexts || enhancedContexts.length === 0) {
+      return null;
+    }
+
+    // 取第一個上下文的相似度（通常是最相關的）
+    const primaryContext = enhancedContexts[0];
+    
+    if (primaryContext.distance !== undefined) {
+      // 將 distance 轉換為相似度 (1 - distance)
+      return Math.max(0, 1 - primaryContext.distance);
+    }
+    
+    return null;
   }
 
   /**

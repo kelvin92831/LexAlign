@@ -80,12 +80,13 @@ const avgSimilarity = computed(() => {
   
   const similarities = changes
     .map(c => c.similarity)
-    .filter(s => s !== undefined && s !== null)
+    .filter(s => s !== undefined && s !== null && s > 0)
   
   if (similarities.length > 0) {
     return similarities.reduce((sum, s) => sum + s, 0) / similarities.length
   }
   
+  // 如果沒有個別建議的相似度，使用文件級別的相似度
   return props.document.avgSimilarity || null
 })
 
