@@ -27,6 +27,9 @@ export const CONFIG_TEMPLATE = {
   CHUNK_SIZE: 700,
   CHUNK_OVERLAP: 200,
   TOP_K: 5,
+  CHROMA_EMBEDDING_MODEL: 'Xenova/paraphrase-multilingual-MiniLM-L12-v2',
+  CHROMA_EMBEDDING_REVISION: 'main',
+  CHROMA_EMBEDDING_QUANTIZED: false,
   
   // 優先文件設定
   PRIORITY_DOC_ID: 'SO-02-002', // 優先文件 ID
@@ -63,6 +66,9 @@ export const CONFIG_TEMPLATE = {
  * CHUNK_SIZE=700
  * CHUNK_OVERLAP=200
  * TOP_K=5
+ * CHROMA_EMBEDDING_MODEL=Xenova/paraphrase-multilingual-MiniLM-L12-v2
+ * CHROMA_EMBEDDING_REVISION=main
+ * CHROMA_EMBEDDING_QUANTIZED=false
  * 
  * # 優先文件設定
  * PRIORITY_DOC_ID=SO-02-002

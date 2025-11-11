@@ -1,4 +1,4 @@
-import { ChromaClient } from 'chromadb';
+import { ChromaClient, TransformersEmbeddingFunction } from 'chromadb';
 import { logger } from '../../utils/logger.js';
 import { config } from '../../config/index.js';
 import { InternalError } from '../../utils/errors.js';
@@ -11,6 +11,12 @@ export class ChromaService {
     this.client = null;
     this.collection = null;
     this.collectionName = 'policy_documents';
+    const embeddingConfig = config.rag?.embedding || {};
+    this.embeddingFunction = new TransformersEmbeddingFunction({
+      model: embeddingConfig.model,
+      revision: embeddingConfig.revision,
+      quantized: embeddingConfig.quantized,
+    });
   }
 
   /**
@@ -31,17 +37,20 @@ export class ChromaService {
       // 測試連線
       await this.client.heartbeat();
       logger.info(`成功連接到 ChromaDB: ${chromaHost}`);
+      logger.info(`使用向量嵌入模型: ${config.rag.embedding.model} (revision: ${config.rag.embedding.revision}, quantized: ${config.rag.embedding.quantized})`);
 
       // 取得或建立集合
       try {
         this.collection = await this.client.getOrCreateCollection({
           name: this.collectionName,
           metadata: { description: '公司內規文件向量庫' },
+          embeddingFunction: this.embeddingFunction,
         });
       } catch (error) {
         // 如果集合已存在，直接取得
         this.collection = await this.client.getCollection({
           name: this.collectionName,
+          embeddingFunction: this.embeddingFunction,
         });
       }
 

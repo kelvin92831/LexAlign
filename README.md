@@ -83,6 +83,9 @@ RAG_DB_TYPE=chroma
 CHROMA_PATH=./chroma_db
 CHUNK_SIZE=700
 CHUNK_OVERLAP=200
+CHROMA_EMBEDDING_MODEL=Xenova/paraphrase-multilingual-MiniLM-L12-v2
+CHROMA_EMBEDDING_REVISION=main
+CHROMA_EMBEDDING_QUANTIZED=false
 
 # RAG 客製設定
 TOP_K=10
@@ -103,6 +106,10 @@ MAX_OUTPUT_TOKENS=8192
 # 日誌設定
 LOG_LEVEL=INFO
 ```
+
+- `CHROMA_EMBEDDING_MODEL`：指定 Transformers 嵌入模型（預設為多語支援的 `Xenova/paraphrase-multilingual-MiniLM-L12-v2`）
+- `CHROMA_EMBEDDING_REVISION`：模型版本（預設 `main`）
+- `CHROMA_EMBEDDING_QUANTIZED`：是否使用 8-bit 量化模型，`true/false`
 
 #### 4. 安裝前端依賴
 

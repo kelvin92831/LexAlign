@@ -43,6 +43,11 @@ export const config = {
     chunkSize: parseInt(process.env.CHUNK_SIZE) || 700,
     chunkOverlap: parseInt(process.env.CHUNK_OVERLAP) || 200,
     topK: parseInt(process.env.TOP_K) || 5,
+    embedding: {
+      model: process.env.CHROMA_EMBEDDING_MODEL || 'Xenova/paraphrase-multilingual-MiniLM-L12-v2',
+      revision: process.env.CHROMA_EMBEDDING_REVISION || 'main',
+      quantized: process.env.CHROMA_EMBEDDING_QUANTIZED === 'true',
+    },
     // 特定文件加權設定
     priorityDocId: process.env.PRIORITY_DOC_ID || 'SO-02-002',  // 優先文件 ID
     priorityWeight: parseFloat(process.env.PRIORITY_WEIGHT) || 0.85,  // 權重係數（越小優先級越高）
