@@ -43,7 +43,10 @@ export class ChromaService {
       try {
         this.collection = await this.client.getOrCreateCollection({
           name: this.collectionName,
-          metadata: { description: '公司內規文件向量庫' },
+          metadata: {
+            description: '公司內規文件向量庫',
+            'hnsw:space': 'cosine',
+          },
           embeddingFunction: this.embeddingFunction,
         });
       } catch (error) {
@@ -52,6 +55,20 @@ export class ChromaService {
           name: this.collectionName,
           embeddingFunction: this.embeddingFunction,
         });
+      }
+
+      // 確保集合已設定為 cosine similarity
+      if (this.collection?.configure) {
+        try {
+          await this.collection.configure({
+            hnsw: { space: 'cosine' },
+          });
+          logger.info('已設定 Chroma 集合相似度為 cosine');
+        } catch (configError) {
+          logger.warn('設定集合相似度為 cosine 失敗，請手動確認', {
+            error: configError.message,
+          });
+        }
       }
 
       logger.info('Chroma 資料庫初始化完成');
